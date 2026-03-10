@@ -6,6 +6,8 @@
     <title>New Horizon International School Library</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 </head>
 <body>
 
@@ -24,24 +26,31 @@
 
     <!-- Hero Section -->
     <section id="home" class="hero">
-        <h1>Discover Endless Worlds</h1>
-        <p>Welcome to the New Horizon International School Library. Your gateway to knowledge, imagination, and learning.</p>
-        
-        <div class="search-container">
-            <input type="text" class="search-input" placeholder="Search for books, articles, or media...">
-            <button class="search-btn">Search</button>
+        <div class="hero-content">
+            <h1>Discover Endless Worlds</h1>
+            <p>Welcome to the New Horizon International School Library. Your gateway to knowledge, imagination, and learning.</p>
+            
+            <div class="search-container">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search for books by title, author, or keyword...">
+                <button id="searchBtn" class="search-btn">Search</button>
+            </div>
         </div>
     </section>
 
     <!-- Catalog Section -->
     <section id="catalog" class="section">
         <div class="section-header">
-            <h2>Library Catalog</h2>
-            <p>Explore our vast collection of physical and digital resources</p>
+            <h2>Library Catalog Search Results</h2>
+            <p>Explore our active inventory</p>
         </div>
         
-        <div class="catalog-grid">
-            <div class="card">
+        <!-- Search Results Details -->
+        <div id="searchResults" class="catalog-grid" style="display: none;">
+            <!-- Dynamically populated from JS -->
+        </div>
+
+        <div id="catalogCategories" class="catalog-grid">
+             <div class="card">
                 <div class="card-icon">📖</div>
                 <div class="card-title">Books & Journals</div>
                 <div class="card-desc">Access thousands of fiction, non-fiction books, and academic journals available for checkout.</div>
@@ -69,17 +78,17 @@
         </div>
         
         <div class="gallery-grid">
-            <div class="gallery-item">
-                <span>[ Reading Area Image ]</span>
+            <div class="gallery-item main-gallery-image">
+                <img src="library_picture.jpg" alt="Our Library Space" onerror="this.src='https://placehold.co/800x600/3a2b5b/FFF?text=Library+Space';">
+                <div class="gallery-caption">Our Library Space</div>
             </div>
             <div class="gallery-item">
-                <span>[ Digital Lab Image ]</span>
+                <img src="https://placehold.co/400x300/2b70c9/FFF?text=Digital+Lab" alt="Digital Lab">
+                 <div class="gallery-caption">Digital Lab</div>
             </div>
             <div class="gallery-item">
-                <span>[ Book Club Event Image ]</span>
-            </div>
-            <div class="gallery-item">
-                <span>[ Study Session Image ]</span>
+                <img src="https://placehold.co/400x300/bd56eb/FFF?text=Reading+Nook" alt="Reading Nook">
+                 <div class="gallery-caption">Reading Nook</div>
             </div>
         </div>
     </section>
@@ -92,7 +101,7 @@
         </div>
         
         <div class="video-grid">
-            <div class="video-item">
+            <div class="video-item" style="background: linear-gradient(to right, #2b3040, #161b22);">
                 <div class="play-button"></div>
                 <div style="position: absolute; bottom: 20px; left: 20px;">
                     <h3 style="color: white; font-size: 1.1rem; margin-bottom: 5px;">How to use the Digital Catalog</h3>
@@ -100,7 +109,7 @@
                 </div>
             </div>
             
-            <div class="video-item">
+            <div class="video-item" style="background: linear-gradient(to right, #382b40, #161b22);">
                 <div class="play-button"></div>
                  <div style="position: absolute; bottom: 20px; left: 20px;">
                     <h3 style="color: white; font-size: 1.1rem; margin-bottom: 5px;">Author Meet & Greet Highlights</h3>
@@ -116,5 +125,104 @@
         <p style="margin-top: 10px; font-size: 0.9em;">Designed with modern web practices</p>
     </footer>
 
+    <!-- Script for handling the inventory CSV and search -->
+    <script>
+        let libraryData = [];
+
+        // Fetch and parse the CSV data
+        fetch('inventory_data.csv')
+            .then(response => response.text())
+            .then(csvText => {
+                Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        libraryData = results.data;
+                        console.log("Loaded " + libraryData.length + " books from inventory.");
+                    }
+                });
+            })
+            .catch(error => console.error("Could not load inventory data:", error));
+
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const searchResultsContainer = document.getElementById('searchResults');
+        const catalogCategories = document.getElementById('catalogCategories');
+
+        function performSearch() {
+            const query = searchInput.value.toLowerCase().trim();
+            if (!query) {
+                searchResultsContainer.style.display = 'none';
+                catalogCategories.style.display = 'grid';
+                return;
+            }
+
+            // Filter data
+            const results = libraryData.filter(item => {
+                const title = (item['Book Name(*)'] || '').toLowerCase();
+                const author = (item['Author'] || '').toLowerCase();
+                const keywords = (item['Keywords'] || '').toLowerCase();
+                const subject = (item['Subject(*)'] || '').toLowerCase();
+                
+                return title.includes(query) || author.includes(query) || keywords.includes(query) || subject.includes(query);
+            });
+
+            displayResults(results, query);
+        }
+
+        function displayResults(results, query) {
+            catalogCategories.style.display = 'none';
+            searchResultsContainer.style.display = 'grid';
+            searchResultsContainer.innerHTML = '';
+
+            if (results.length === 0) {
+                searchResultsContainer.innerHTML = `<div class="card" style="grid-column: 1 / -1; text-align: center;">
+                    <div class="card-icon">🔍</div>
+                    <div class="card-title">No Results Found</div>
+                    <div class="card-desc">We couldn't find any books matching "${query}". Try different keywords.</div>
+                </div>`;
+                return;
+            }
+
+            // Show top 20 results to avoid massive DOM
+            const displayCount = Math.min(results.length, 20);
+            
+            for (let i = 0; i < displayCount; i++) {
+                const book = results[i];
+                const title = book['Book Name(*)'] || 'Unknown Title';
+                const author = book['Author'] || 'Unknown Author';
+                const subject = book['Subject(*)'] || 'General';
+                const isbn = book['ISBN'] || 'N/A';
+                
+                const card = document.createElement('div');
+                card.className = 'card inventory-card';
+                card.innerHTML = `
+                    <div class="card-icon" style="font-size: 2rem;">📚</div>
+                    <div class="card-title">${title}</div>
+                    <div class="card-desc">
+                        <strong>Author:</strong> ${author}<br>
+                        <strong>Subject:</strong> ${subject}<br>
+                        <strong>ISBN:</strong> <span style="font-size:0.85em; opacity:0.8">${isbn}</span>
+                    </div>
+                `;
+                searchResultsContainer.appendChild(card);
+            }
+
+            if (results.length > 20) {
+                const moreCard = document.createElement('div');
+                moreCard.className = 'card';
+                moreCard.style.display = 'flex';
+                moreCard.style.alignItems = 'center';
+                moreCard.style.justifyContent = 'center';
+                moreCard.innerHTML = `<div class="card-desc">...and ${results.length - 20} more results. Refine your search.</div>`;
+                searchResultsContainer.appendChild(moreCard);
+            }
+        }
+
+        searchBtn.addEventListener('click', performSearch);
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') performSearch();
+        });
+    </script>
 </body>
 </html>
