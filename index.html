@@ -79,7 +79,7 @@
         
         <div class="gallery-grid">
             <div class="gallery-item main-gallery-image">
-                <img src="library_picture.jpg" alt="Our Library Space" onerror="this.src='https://placehold.co/800x600/3a2b5b/FFF?text=Library+Space';">
+                <img src="libnh.jpg" alt="Our Library Space" onerror="this.src='https://placehold.co/800x600/3a2b5b/FFF?text=Library+Space';">
                 <div class="gallery-caption">Our Library Space</div>
             </div>
             <div class="gallery-item">
@@ -149,6 +149,9 @@
         const searchResultsContainer = document.getElementById('searchResults');
         const catalogCategories = document.getElementById('catalogCategories');
 
+        let currentResults = [];
+        let displayLimit = 100;
+
         function performSearch() {
             const query = searchInput.value.toLowerCase().trim();
             if (!query) {
@@ -158,24 +161,26 @@
             }
 
             // Filter data
-            const results = libraryData.filter(item => {
+            currentResults = libraryData.filter(item => {
                 const title = (item['Book Name(*)'] || '').toLowerCase();
                 const author = (item['Author'] || '').toLowerCase();
                 const keywords = (item['Keywords'] || '').toLowerCase();
                 const subject = (item['Subject(*)'] || '').toLowerCase();
+                const accession = (item['Accession Number'] || '').toLowerCase();
                 
-                return title.includes(query) || author.includes(query) || keywords.includes(query) || subject.includes(query);
+                return title.includes(query) || author.includes(query) || keywords.includes(query) || subject.includes(query) || accession.includes(query);
             });
 
-            displayResults(results, query);
+            displayLimit = 100;
+            displayResults(query);
         }
 
-        function displayResults(results, query) {
+        function displayResults(query) {
             catalogCategories.style.display = 'none';
             searchResultsContainer.style.display = 'grid';
             searchResultsContainer.innerHTML = '';
 
-            if (results.length === 0) {
+            if (currentResults.length === 0) {
                 searchResultsContainer.innerHTML = `<div class="card" style="grid-column: 1 / -1; text-align: center;">
                     <div class="card-icon">🔍</div>
                     <div class="card-title">No Results Found</div>
@@ -184,15 +189,15 @@
                 return;
             }
 
-            // Show top 20 results to avoid massive DOM
-            const displayCount = Math.min(results.length, 20);
+            // Show results up to display limit
+            const displayCount = Math.min(currentResults.length, displayLimit);
             
             for (let i = 0; i < displayCount; i++) {
-                const book = results[i];
+                const book = currentResults[i];
                 const title = book['Book Name(*)'] || 'Unknown Title';
                 const author = book['Author'] || 'Unknown Author';
                 const subject = book['Subject(*)'] || 'General';
-                const isbn = book['ISBN'] || 'N/A';
+                const acc = book['Accession Number'] || '';
                 
                 const card = document.createElement('div');
                 card.className = 'card inventory-card';
@@ -202,19 +207,25 @@
                     <div class="card-desc">
                         <strong>Author:</strong> ${author}<br>
                         <strong>Subject:</strong> ${subject}<br>
-                        <strong>ISBN:</strong> <span style="font-size:0.85em; opacity:0.8">${isbn}</span>
+                        <strong>Ref:</strong> <span style="font-size:0.85em; opacity:0.8">${acc}</span>
                     </div>
                 `;
                 searchResultsContainer.appendChild(card);
             }
 
-            if (results.length > 20) {
+            if (currentResults.length > displayLimit) {
                 const moreCard = document.createElement('div');
                 moreCard.className = 'card';
                 moreCard.style.display = 'flex';
                 moreCard.style.alignItems = 'center';
                 moreCard.style.justifyContent = 'center';
-                moreCard.innerHTML = `<div class="card-desc">...and ${results.length - 20} more results. Refine your search.</div>`;
+                moreCard.style.cursor = 'pointer';
+                moreCard.style.border = '2px dashed var(--primary)';
+                moreCard.onclick = function() {
+                    displayLimit += 100;
+                    displayResults(query);
+                };
+                moreCard.innerHTML = `<div class="card-desc" style="text-align: center; color: var(--primary); font-weight: bold; font-size: 1.1rem;">➕ Load More Results<br><span style="font-size: 0.8em; color: var(--text-muted); font-weight: normal;">(${currentResults.length - displayLimit} remaining)</span></div>`;
                 searchResultsContainer.appendChild(moreCard);
             }
         }
