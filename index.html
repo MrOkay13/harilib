@@ -157,6 +157,13 @@
         <p style="margin-top: 10px; font-size: 0.9em;">Designed with modern web practices</p>
     </footer>
 
+    <!-- Lightbox Modal -->
+    <div id="lightbox" class="lightbox">
+        <span class="lightbox-close">&times;</span>
+        <img class="lightbox-content" id="lightbox-img">
+        <div id="lightbox-caption" class="lightbox-caption"></div>
+    </div>
+
     <!-- Script for handling the inventory CSV and search -->
     <script>
         let libraryData = [];
@@ -265,6 +272,36 @@
         searchBtn.addEventListener('click', performSearch);
         searchInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') performSearch();
+        });
+
+        // Lightbox functionality
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+        const lightboxCaption = document.getElementById('lightbox-caption');
+        const lightboxClose = document.querySelector('.lightbox-close');
+        
+        document.querySelectorAll('.gallery-item img').forEach(img => {
+            img.style.cursor = 'zoom-in';
+            img.addEventListener('click', function() {
+                lightbox.style.display = 'flex';
+                // Trigger reflow for animation
+                setTimeout(() => lightbox.classList.add('active'), 10);
+                lightboxImg.src = this.src;
+                lightboxCaption.innerText = this.nextElementSibling.innerText;
+            });
+        });
+
+        const closeLightbox = () => {
+            lightbox.classList.remove('active');
+            setTimeout(() => lightbox.style.display = 'none', 300);
+        };
+
+        lightboxClose.addEventListener('click', closeLightbox);
+        lightbox.addEventListener('click', (e) => {
+            if(e.target === lightbox) closeLightbox();
+        });
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'Escape' && lightbox.style.display === 'flex') closeLightbox();
         });
     </script>
 </body>
